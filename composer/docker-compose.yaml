@@ -11,6 +11,7 @@ services:
         # Add any other gitlab.rb configuration here, each on its own line
         external_url 'http://192.168.11.4:8929'
         gitlab_rails['gitlab_shell_ssh_port'] = 2224
+        nginx['listen_port'] = 80
       GITLAB_HOME: "/srv/gitlab"
     ports:
       - '8929:80'
