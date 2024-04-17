@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+
+  # https://coder.com/docs/code-server/latest/install#docker
+  code-server:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: code-server
+    restart: always
+    privileged: true
+    environment:
+      - UID=1000
+      - GID=1000
+      - TZ=Asia/Tokyo
+      - PASSWORD=password #optional
+      - HASHED_PASSWORD= #optional
+      - SUDO_PASSWORD=password #optional
+      - SUDO_PASSWORD_HASH= #optional
+      - PROXY_DOMAIN=code-server.192.168.11.4.traefik.me #optional
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.code-server.entrypoints=http"
+      - "traefik.http.routers.code-server.rule=HostRegexp(`code-server.{ip:.*}.traefik.me`)"
+      # - "traefik.http.routers.code-server.rule=PathPrefix(``)"
+      - "traefik.http.routers.code-server.service=code-server"
+      - "traefik.http.services.code-server.loadbalancer.server.port=8443"
+    networks:
+      - traefik-proxy
+    volumes:
+      - ~/.local:/home/coder/.local
+      - ~/.config:/home/coder/.config
+      - ./project:/home/coder/project
+
+networks:
+  traefik-proxy:
+    external: true

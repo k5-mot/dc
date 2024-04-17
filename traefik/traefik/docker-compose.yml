@@ -1,0 +1,43 @@
+version: "3.3"
+
+services:
+
+  # https://doc.traefik.io/traefik/user-guides/docker-compose/basic-example/
+  traefik:
+    image: "traefik:v2.11"
+    container_name: "traefik"
+    command:
+      #- "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.http.address=:80"
+      - "--entrypoints.https.address=:443"
+      - "--entrypoints.ssh.address=:2222"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2222:2222"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - traefik-proxy
+
+  whoami:
+    image: "traefik/whoami"
+    container_name: "whoami"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=HostRegexp(`whoami.{ip:.*}.traefik.me`)"
+      # - "traefik.http.routers.whoami.rule=PathPrefix(`/whoami/`)"
+      - "traefik.http.routers.whoami.entrypoints=http"
+      - "traefik.http.routers.whoami.service=whoami"
+      - "traefik.http.services.whoami.loadbalancer.server.port=80"
+    networks:
+      - traefik-proxy
+
+networks:
+  traefik-proxy:
+    name: traefik-proxy
+    external: false

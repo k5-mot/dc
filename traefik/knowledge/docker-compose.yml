@@ -1,0 +1,43 @@
+version: '3'
+services:
+
+  # https://github.com/support-project/docker-knowledge/blob/master/docker-compose.yml
+  knowledge:
+    image: koda/docker-knowledge:japanese
+    # build: .
+    container_name: knowledge
+    volumes:
+      - ./config:/root/.knowledge
+    restart: always
+    depends_on:
+      - knowledge-db
+    networks:
+      - traefik-proxy
+      - knowledge-backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.knowledge.entrypoints=http"
+      - "traefik.http.routers.knowledge.rule=HostRegexp(`knowledge.{ip:.*}.traefik.me`)"
+      # - "traefik.http.routers.knowledge.rule=PathPrefix(``)"
+      - "traefik.http.routers.knowledge.service=knowledge"
+      - "traefik.http.services.knowledge.loadbalancer.server.port=8080"
+
+  knowledge-db:
+    image: postgres:9
+    container_name: knowledge-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_DB=knowledge_production
+    volumes:
+      #- ./volumes/initdb:/docker-entrypoint-initdb.d
+      - ./.volumes/postgres/data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - knowledge-backend
+
+networks:
+  knowledge-backend:
+    name: knowledge-backend
+  traefik-proxy:
+    external: true

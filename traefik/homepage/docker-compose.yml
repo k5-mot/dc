@@ -1,0 +1,31 @@
+
+version: "3.3"
+
+services:
+
+  # https://github.com/gethomepage/homepage/
+  homepage:
+    image: ghcr.io/gethomepage/homepage:v0.8.12
+    container_name: homepage
+    restart: unless-stopped
+    environment:
+      # use `id` command
+      PUID: 1000
+      PGID: 1000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homepage.entrypoints=http"
+      - "traefik.http.routers.homepage.rule=HostRegexp(`home.{ip:.*}.traefik.me`)"
+      - "traefik.http.routers.homepage.service=homepage"
+      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
+    volumes:
+      # Make sure your local config directory exists
+      - ./config:/app/config
+      # optional, for docker integrations
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik-proxy
+
+networks:
+  traefik-proxy:
+    external: true
