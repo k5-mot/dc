@@ -1,0 +1,3 @@
+[submodule "traefik/plane"]
+	path = traefik/plane
+	url = https://github.com/makeplane/plane.git
