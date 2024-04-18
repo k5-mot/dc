@@ -2,6 +2,10 @@
 # For configuration options and examples, please see:
 # https://gethomepage.dev/latest/configs/settings
 
-providers:
-  openweathermap: openweathermapapikey
-  weatherapi: weatherapiapikey
+startUrl: http://home.192.168.11.4.traefik.me/
+base: http://home.192.168.11.4.traefik.me/
+layout:
+  composer:
+    style: row
+    columns: 4
+showStats: true

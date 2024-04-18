@@ -2,17 +2,67 @@
 # For configuration options and examples, please see:
 # https://gethomepage.dev/latest/configs/services
 
-- My First Group:
-    - My First Service:
-        href: http://localhost/
-        description: Homepage is awesome
+- composer:
+  - Homepage:
+      href: http://home.192.168.11.4.traefik.me/
+      icon: homepage.png
+      description: Home page
+      server: my-docker
+      container: homepage
 
-- My Second Group:
-    - My Second Service:
-        href: http://localhost/
-        description: Homepage is the best
+  - Traefik:
+      href: http://192.168.11.4.traefik.me:8080/
+      icon: traefik.svg
+      description: Reverse proxy
+      server: my-docker
+      container: traefik
 
-- My Third Group:
-    - My Third Service:
-        href: http://localhost/
-        description: Homepage is 😎
+  - Whoami:
+      href: http://whoami.192.168.11.4.traefik.me/
+      icon: traefik.svg
+      description: Prints OS information
+      server: my-docker
+      container: whoami
+
+  - GitLab:
+      href: http://gitlab.192.168.11.4.traefik.me/
+      icon: gitlab.svg
+      description: DevSecOps Platform
+      server: my-docker
+      container: gitlab
+
+  - Jenkins:
+      href: http://jenkins.192.168.11.4.traefik.me/
+      icon: jenkins.png
+      description: CI / CD
+      server: my-docker
+      container: jenkins
+
+  - Code-Server:
+      href: http://code-server.192.168.11.4.traefik.me/
+      icon: code-server.png
+      description: VS Code in the browser
+      server: my-docker
+      container: code-server
+
+  - Knowledge:
+      href: http://knowledge.192.168.11.4.traefik.me/
+      # icon: mdi-crosshairs-question
+      icon: https://avatars.githubusercontent.com/u/10343544?s=200&v=4
+      description: Knowledge base
+      server: my-docker
+      container: knowledge
+
+  - Leantime:
+      href: http://leantime.192.168.11.4.traefik.me/
+      icon: leantime.png
+      description: Project management
+      server: my-docker
+      container: leantime
+
+  - Wiki.js:
+      href: http://wikijs.192.168.11.4.traefik.me/
+      icon: wikijs.png
+      description: Wiki
+      server: my-docker
+      container: wikijs

@@ -16,6 +16,7 @@ services:
         # registry_external_url 'http://registry.gitlab.192.168.11.4.traefik.me'
         # pages_external_url 'http://pages.gitlab.192.168.11.4.traefik.me'
         gitlab_rails['time_zone'] = 'Tokyo'
+        # GitLab
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.gitlab-http.entrypoints=http"
