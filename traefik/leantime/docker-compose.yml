@@ -7,7 +7,9 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     restart: unless-stopped
-    env_file: ./.env                                        # Environment file with settings
+    env_file: ./.env  # Environment file with settings
+    ports:
+      - 127.0.0.1:3306:3306
     networks:
       - leantime-backend
     command: --character-set-server=UTF8MB4 --collation-server=UTF8MB4_unicode_ci

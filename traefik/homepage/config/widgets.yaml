@@ -2,11 +2,18 @@
 # For configuration options and examples, please see:
 # https://gethomepage.dev/latest/configs/service-widgets
 
+- logo:
+    icon: https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/I_Love_New_York.svg/1101px-I_Love_New_York.svg.png # optional
+
+- greeting:
+    text_size: xl
+    text: Greeting Text
+
 - resources:
     cpu: true
     memory: true
     disk: /
 
 - search:
-    provider: duckduckgo
+    provider: google
     target: _blank
