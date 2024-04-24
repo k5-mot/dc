@@ -1,0 +1,17 @@
+
+[Unit]
+Description=docker-compose.service
+Requires=docker.service
+
+[Service]
+User=core
+Type=simple
+
+ExecStart=/bin/bash /home/composer/dc/traefik/dc-up.sh
+ExecStop=/bin/bash /home/composer/dc/traefik/dc-down.sh
+
+Restart=always
+RestartSec=180s
+
+[Install]
+WantedBy=multi-user.target

@@ -30,7 +30,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.whoami.rule=HostRegexp(`whoami.{ip:.*}.traefik.me`)"
-      # - "traefik.http.routers.whoami.rule=PathPrefix(`/whoami/`)"
       - "traefik.http.routers.whoami.entrypoints=http"
       - "traefik.http.routers.whoami.service=whoami"
       - "traefik.http.services.whoami.loadbalancer.server.port=80"

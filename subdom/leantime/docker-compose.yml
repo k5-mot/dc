@@ -1,0 +1,48 @@
+version: '3.3'
+
+services:
+  leantime_db:
+    image: mysql:8.0
+    container_name: leantime_db
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+    env_file: ./.env  # Environment file with settings
+    ports:
+      - 127.0.0.1:3306:3306
+    networks:
+      - leantime-backend
+    command: --character-set-server=UTF8MB4 --collation-server=UTF8MB4_unicode_ci
+
+  leantime:
+    image: leantime/leantime:latest
+    container_name: leantime
+    restart: unless-stopped
+    env_file: ./.env                                        # Environment file with settings
+    networks:
+      - leantime-backend
+      - traefik-proxy
+    volumes:
+      - public_userfiles:/var/www/html/public/userfiles     # Volume to store public files, logo etc
+      - userfiles:/var/www/html/userfiles                   # Volume to store private user uploaded files
+    # ports:
+    #   - "${LEAN_PORT}:80"                                          # The port to expose and access Leantime
+    depends_on:
+      - leantime_db                                         # Don't start Leantime unless leantime_db is running
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.leantime.entrypoints=http"
+      - "traefik.http.routers.leantime.rule=HostRegexp(`leantime.{ip:.*}.traefik.me`)"
+      - "traefik.http.routers.leantime.service=leantime"
+      - "traefik.http.services.leantime.loadbalancer.server.port=80"
+
+volumes:
+  db_data:
+  userfiles:
+  public_userfiles:
+
+networks:
+  leantime-backend:
+    name: leantime-backend
+  traefik-proxy:
+    external: true

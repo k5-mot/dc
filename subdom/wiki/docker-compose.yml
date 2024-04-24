@@ -1,0 +1,53 @@
+version: "3"
+services:
+
+  # https://docs.requarks.io/install/docker
+  wikijs-db:
+    image: postgres:15-alpine
+    container_name: wikijs-db
+    environment:
+      POSTGRES_DB: wiki
+      POSTGRES_PASSWORD: wikijsrocks
+      POSTGRES_USER: wikijs
+    logging:
+      driver: "none"
+    restart: unless-stopped
+    volumes:
+      - wiki-db:/var/lib/postgresql/data
+    networks:
+      - wiki-backend
+
+  wikijs:
+    image: ghcr.io/requarks/wiki:2
+    container_name: wikijs
+    depends_on:
+      - wikijs-db
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: wikijs-db
+      DB_PORT: 5432
+      DB_USER: wikijs
+      DB_PASS: wikijsrocks
+      DB_NAME: wiki
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wikijs.entrypoints=http"
+      - "traefik.http.routers.wikijs.rule=HostRegexp(`wikijs.{ip:.*}.traefik.me`)"
+      - "traefik.http.routers.wikijs.service=wikijs"
+      - "traefik.http.services.wikijs.loadbalancer.server.port=3000"
+    restart: unless-stopped
+    networks:
+      - traefik-proxy
+      - wiki-backend
+    # ports:
+    #   - "80:3000"
+
+volumes:
+  wiki-db:
+    name: wiki-db
+
+networks:
+  wiki-backend:
+    name: wiki-backend
+  traefik-proxy:
+    external: true

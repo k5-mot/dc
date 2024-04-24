@@ -1,0 +1,53 @@
+version: '3.6'
+
+services:
+
+  # https://docs.gitlab.com/ee/install/docker.html
+  gitlab:
+    image: gitlab/gitlab-ee:16.10.3-ee.0
+    container_name: gitlab
+    restart: always
+    # hostname: '192.168.11.4.traefik.me'
+    shm_size: '256m'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        # Add any other gitlab.rb configuration here, each on its own line
+        external_url 'http://gitlab.192.168.11.4.traefik.me'
+        # registry_external_url 'http://registry.gitlab.192.168.11.4.traefik.me'
+        # pages_external_url 'http://pages.gitlab.192.168.11.4.traefik.me'
+        # gitlab_rails['time_zone'] = 'Tokyo'
+        # GitLab
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitlab-http.entrypoints=http"
+      - "traefik.http.routers.gitlab-http.rule=HostRegexp(`gitlab.{ip:.*}.traefik.me`)"
+      - "traefik.http.routers.gitlab-http.service=gitlab-http"
+      - "traefik.http.services.gitlab-http.loadbalancer.server.port=80"
+      - "traefik.tcp.routers.gitlab-ssh.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.gitlab-ssh.entrypoints=ssh"
+      - "traefik.tcp.routers.gitlab-ssh.service=gitlab-ssh"
+      - "traefik.tcp.services.gitlab-ssh.loadbalancer.server.port=22"
+    volumes:
+      - ./.volumes/config:/etc/gitlab
+      - ./.volumes/logs:/var/log/gitlab
+      - ./.volumes/data:/var/opt/gitlab
+    networks:
+      - traefik-proxy
+      - gitlab-backend
+
+  # https://docs.gitlab.com/runner/install/docker.html
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    container_name: gitlab-runner
+    restart: always
+    volumes:
+      - ./gitlab-runner/config:/etc/gitlab-runner
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - gitlab-backend
+
+networks:
+  gitlab-backend:
+    name: gitlab-backend
+  traefik-proxy:
+    external: true
