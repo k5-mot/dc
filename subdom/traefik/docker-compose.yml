@@ -14,6 +14,8 @@ services:
       - "--entrypoints.http.address=:80"
       - "--entrypoints.https.address=:443"
       - "--entrypoints.ssh.address=:2222"
+    labels:
+      - traefik.docker.network=traefik-proxy
     ports:
       - "80:80"
       - "443:443"
@@ -39,4 +41,4 @@ services:
 networks:
   traefik-proxy:
     name: traefik-proxy
-    external: false
+    external: true
