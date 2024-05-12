@@ -15,12 +15,11 @@ DCDIRS=("traefik" "homepage" )
 for DCDIR in ${DCDIRS[@]}; do
     DCPATH=$(readlink -f $DCDIR)
     pushd $DCPATH
-    if [ -f "docker-compose.yml" ]; then
-        sudo docker-compose kill
-        sudo docker-compose rm --force
-        sudo docker-compose down --remove-orphans
-        sudo docker-compose up --build --force-recreate --detach
-
+    if [ -f "docker-compose.yml" ] || [ -f "compose.yml" ]; then
+        sudo docker compose kill
+        sudo docker compose rm --force
+        sudo docker compose down --remove-orphans
+        sudo docker compose up --build --force-recreate --detach
     fi
     popd
 done

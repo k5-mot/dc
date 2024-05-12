@@ -31,6 +31,13 @@
       server: my-docker
       container: gitlab
 
+  - GitLab-Runner:
+      href: http://gitlab.192.168.11.4.traefik.me/
+      icon: gitlab.svg
+      description: Task runner
+      server: my-docker
+      container: gitlab-runner
+
   - Jenkins:
       href: http://jenkins.192.168.11.4.traefik.me/
       icon: jenkins.png

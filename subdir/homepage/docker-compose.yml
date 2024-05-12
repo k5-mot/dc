@@ -1,6 +1,4 @@
 
-version: "3.3"
-
 services:
 
   # https://gethomepage.dev/latest/configs/docker/#using-docker-socket-proxy
@@ -16,7 +14,7 @@ services:
     ports:
       - 127.0.0.1:2375:2375
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock # Mounted as read-only
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Mounted as read-only
     restart: unless-stopped
     networks:
       - homepage-backend
@@ -29,16 +27,22 @@ services:
     privileged: true
     ports:
       - 3000:3000
-    # environment:
-    #   # use `id` command
-    #   PUID: 1000
-    #   PGID: 1000
+    environment:
+      # use `id` command
+      PUID: 1000
+      PGID: 1000
+      TZ: Asia/Tokyo
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.homepage.entrypoints=http"
-      - "traefik.http.routers.homepage.rule=PathPrefix(`/home`)"
+      - "traefik.docker.network=traefik-proxy"
+      - "traefik.http.routers.homepage.entrypoints=web"
+      - "traefik.http.routers.homepage.rule=HostRegexp(`{ip:.*}`)"
+      # - "traefik.http.routers.homepage.rule=HostRegexp(`home.{ip:.*}.traefik.me`)"
+      # - "traefik.http.routers.homepage.rule=PathPrefix(`/home`)"
       - "traefik.http.routers.homepage.service=homepage"
       - "traefik.http.services.homepage.loadbalancer.server.port=3000"
+      # - traefik.http.middlewares.homepage-strip-prefix.stripprefix.prefixes=/home
+      # - traefik.http.routers.homepage.middlewares=homepage-strip-prefix@docker
     volumes:
       # Make sure your local config directory exists
       - ./config:/app/config

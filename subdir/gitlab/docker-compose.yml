@@ -1,4 +1,3 @@
-version: '3.6'
 
 services:
 
@@ -12,21 +11,23 @@ services:
     environment:
       GITLAB_OMNIBUS_CONFIG: |
         # Add any other gitlab.rb configuration here, each on its own line
-        external_url 'http://localhost/gitlab/'
-        # registry_external_url 'http://localhost/gitlab/registry/'
-        # pages_external_url 'http://localhost/gitlab/pages/'
+        # external_url 'http://192.168.11.3/gitlab'
+        external_url 'http://gitlab.192.168.11.3.traefik.me'
+        # registry_external_url 'http://192.168.11.3/gitlab/registry/'
+        # pages_external_url 'http://192.168.11.3/gitlab/pages/'
         gitlab_rails['time_zone'] = 'Tokyo'
-        # GitLab
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.gitlab-http.entrypoints=http"
-      - "traefik.http.routers.gitlab-http.rule=PathPrefix(`/gitlab/`)"
+      - "traefik.http.routers.gitlab-http.entrypoints=web"
+      # - "traefik.http.routers.gitlab-http.rule=PathPrefix(`/gitlab/`)"
+      - "traefik.http.routers.gitlab-http.rule=HostRegexp(`gitlab.{ip:.*}.traefik.me`)"
       - "traefik.http.routers.gitlab-http.service=gitlab-http"
       - "traefik.http.services.gitlab-http.loadbalancer.server.port=80"
       - "traefik.tcp.routers.gitlab-ssh.rule=HostSNI(`*`)"
       - "traefik.tcp.routers.gitlab-ssh.entrypoints=ssh"
       - "traefik.tcp.routers.gitlab-ssh.service=gitlab-ssh"
-      - "traefik.tcp.services.gitlab-ssh.loadbalancer.server.port=22"
+      - "traefik.tcp.services.gitlab-ssh.loadbalancer.server.port=2222"
     volumes:
       - ./.volumes/config:/etc/gitlab
       - ./.volumes/logs:/var/log/gitlab
