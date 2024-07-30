@@ -12,8 +12,12 @@ background:
   brightness: 75 # 0, 50, 75... see https://tailwindcss.com/docs/backdrop-brightness
   opacity: 70 # 0-100
 layout:
-  composer:
-    icon: mdi-server-outline
+  Under Operation:
+    icon: si-docker-#0db7ed
+    style: row
+    columns: 4
+  Under Experiment:
+    icon: si-docker-#0db7ed
     style: row
     columns: 4
 showStats: true

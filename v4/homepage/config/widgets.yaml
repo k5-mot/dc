@@ -3,11 +3,11 @@
 # https://gethomepage.dev/latest/configs/service-widgets
 
 - logo:
-    icon: https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/I_Love_New_York.svg/1101px-I_Love_New_York.svg.png # optional
+    icon: https://avatars.githubusercontent.com/u/34744243?v=4 # optional
 
 - greeting:
     text_size: xl
-    text: Greeting Text
+    text: K5
 
 - resources:
     cpu: true
@@ -15,5 +15,5 @@
     disk: /
 
 - search:
-    provider: google
+    provider: bing
     target: _blank

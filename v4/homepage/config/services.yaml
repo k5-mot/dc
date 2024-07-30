@@ -2,7 +2,7 @@
 # For configuration options and examples, please see:
 # https://gethomepage.dev/latest/configs/services
 
-- composer:
+- Under Operation:
   - Homepage:
       href: http://192.168.11.2/home/
       icon: homepage.png
@@ -85,6 +85,7 @@
       server: my-docker
       container: knowledge
 
+- Under Experiment:
   - Wiki.js:
       href: http://192.168.11.2:30010
       icon: wikijs.png
@@ -99,9 +100,16 @@
       server: my-docker
       container: nextcloud
 
+  - Open-WebUI:
+      href: http://192.168.11.2:30012/
+      icon: open-webui.png
+      description: AIくんUI (リバプロなし)
+      server: my-docker
+      container: open-webui
+
   - Ollama:
       href: http://192.168.11.2:30012/
       icon: ollama.svg
-      description: AIくん (リバプロなし)
+      description: AIくん本体 (リバプロなし)
       server: my-docker
-      container: open-webui
+      container: ollama
