@@ -6,6 +6,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ollama:/root/.ollama
+      - ./ollama:/root/ollama
     container_name: ollama
     pull_policy: always
     tty: true

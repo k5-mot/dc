@@ -1,0 +1,100 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/latest/configs/services
+
+- composer:
+  - Homepage:
+      href: http://192.168.11.2/home/
+      icon: homepage.png
+      description: Home page
+      server: my-docker
+      container: homepage
+
+  - Nginx:
+      href: http://192.168.11.2/
+      icon: nginx.svg
+      description: さーば、りばぷろ
+      server: my-docker
+      container: nginx
+
+  - GitLab:
+      href: http://192.168.11.2/gitlab/
+      icon: gitlab.svg
+      description: ぎっと
+      server: my-docker
+      container: gitlab
+
+  - GitLab-Runner:
+      icon: gitlab.svg
+      description: ぎっと
+      server: my-docker
+      container: gitlab-runner
+
+  - Redmine:
+      href: http://192.168.11.2/redmine/
+      icon: si-redmine-#B32024
+      description: ちけっと
+      server: my-docker
+      container: redmine
+
+  - Portainer:
+      href: http://192.168.11.2/portainer/
+      icon: portainer.svg
+      description: どっかー
+      server: my-docker
+      container: portainer
+
+  - OpenLDAP:
+      icon: phpldapadmin.png
+      description: えるだっぷ
+      server: my-docker
+      container: openldap
+
+  - phpLDAPadmin:
+      href: http://192.168.11.2/openldap/
+      icon: phpldapadmin.png
+      description: えるだっぷのUI
+      server: my-docker
+      container: openldap-ui
+
+  - dockerproxy:
+      icon: docker.svg
+      description: homepageのふみだい
+      server: my-docker
+      container: dockerproxy
+
+  - Code-Server:
+      href: http://192.168.11.2/coder/
+      icon: code-server.png
+      description: かいはつかんきょう
+      server: my-docker
+      container: coder
+
+  - Jenkins:
+      href: http://192.168.11.2/jenkins/
+      icon: jenkins.png
+      description: CICD
+      server: my-docker
+      container: jenkins
+
+  - Knowledge:
+      href: http://192.168.11.2/knowledge/
+      # icon: mdi-crosshairs-question
+      icon: https://avatars.githubusercontent.com/u/10343544?s=200&v=4
+      description: なれっじ
+      server: my-docker
+      container: knowledge
+
+  - Wiki.js:
+      href: http://192.168.11.2:30010
+      icon: wikijs.png
+      description: なれっじ (リバプロなし)
+      server: my-docker
+      container: wikijs
+
+  - Nextcloud:
+      href: http://192.168.11.2:30011/
+      icon: nextcloud.svg
+      description: すとれーじ (リバプロなし)
+      server: my-docker
+      container: nextcloud

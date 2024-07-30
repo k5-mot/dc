@@ -1,0 +1,281 @@
+services:
+
+  # https://doc.traefik.io/traefik/user-guides/docker-compose/basic-example/
+  traefik:
+    image: docker.io/traefik:v2.11
+    container_name: traefik
+    command:
+      #- "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.http.address=:80"
+      - "--entrypoints.https.address=:443"
+      - "--entrypoints.ssh.address=:2222"
+    labels:
+      - traefik.docker.network=reverse-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2222:2222"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - reverse-proxy
+
+  whoami:
+    image: docker.io/traefik/whoami
+    container_name: whoami
+    labels:
+      - "traefik.enable=true"
+      # - "traefik.http.routers.whoami.rule=Host(`whoami-homelab.local`)"
+      - "traefik.http.routers.whoami.rule=PathPrefix(`/whoami/`) || HostRegexp(`whoami.{ip:.*}.traefik.me`)"
+      - "traefik.http.routers.whoami.entrypoints=http"
+      - "traefik.http.routers.whoami.service=whoami"
+      - "traefik.http.services.whoami.loadbalancer.server.port=80"
+    networks:
+      - reverse-proxy
+
+  # https://github.com/gethomepage/homepage/
+  homepage:
+    image: ghcr.io/gethomepage/homepage:v0.8.12
+    container_name: homepage
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - 8765:3000
+    environment:
+      # use `id` command
+      PUID: 1000
+      PGID: 1000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homepage.entrypoints=http"
+      - "traefik.http.routers.homepage.rule=HostRegexp(`home.{ip:.*}.traefik.me`) || HostRegexp(`home.local`)"
+      # - "traefik.http.routers.homepage.rule=HostRegexp(`home.local`)"
+      - "traefik.http.routers.homepage.service=homepage"
+      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
+    volumes:
+      # Make sure your local config directory exists
+      - ./homepage/config:/app/config
+      # optional, for docker integrations
+      # - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - reverse-proxy
+      - homepage-network
+
+  # https://gethomepage.dev/latest/configs/docker/#using-docker-socket-proxy
+  dockerproxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:latest
+    privileged: true
+    container_name: dockerproxy
+    environment:
+      - CONTAINERS=1 # Allow access to viewing containers
+      - SERVICES=0 # Allow access to viewing services (necessary when using Docker Swarm)
+      - TASKS=0 # Allow access to viewing tasks (necessary when using Docker Swarm)
+      - POST=0 # Disallow any POST operations (effectively read-only)
+    ports:
+      - 2375:2375
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Mounted as read-only
+    restart: unless-stopped
+    networks:
+      - homepage-network
+
+  # openldap:
+  #   image: osixia/openldap:1.5.0
+  #   restart: always
+  #   container_name: openldap
+  #   environment:
+  #     LDAP_ORGANISATION: "homelab"
+  #     LDAP_DOMAIN: "minisforum.local"
+  #     LDAP_ADMIN_PASSWORD: "admin_password"
+  #     LDAP_TLS_VERIFY_CLIENT: "never"                       # SSLクライアント認証の無効化
+  #     LDAP_READONLY_USER: "true"                            # 読取専用ユーザ有効
+  #     LDAP_READONLY_USER_USERNAME: "readonly"               # 読取専用ユーザ名
+  #     LDAP_READONLY_USER_PASSWORD: "readonly_password"      # 読取専用ユーザパスワード
+  #     # デフォルトでは自己署名証明書を自動生成、本番環境では下記コメントを外して証明書を指定
+  #     # LDAP_TLS_CRT_FILENAME: "ldap.crt"    # SSL証明書
+  #     # LDAP_TLS_KEY_FILENAME: "ldap.key"    # SSL秘密鍵
+  #     # LDAP_TLS_CA_CRT_FILENAME: "ca.crt"   # クライアント認証用CA証明書、使用しなくても指定は必須
+  #   ports:
+  #     - "389:389"
+  #     - "636:636"
+  #   networks:
+  #     - ldap-network
+  #   volumes:
+  #     - "./openldap/slapd/database:/var/lib/ldap"
+  #     - "./openldap/slapd/config:/etc/ldap/slapd.d"
+  #     - "./openldap/slapd/ldifs:/container/service/slapd/assets/custome" # ldifファイルの置き場として使用
+
+  # lam:  # Ldap Account Manager (LDAP管理ツール）
+  #   image: ldapaccountmanager/lam
+  #   container_name: lam
+  #   restart: on-failure:3
+  #   ports:
+  #     - 9032:80
+  #   environment:
+  #     LDAP_DOMAIN: "minisforum.local"                           # 組織のドメイン、OpenLDAPの設定に合わせる
+  #     LDAP_BASE_DN: "dc=minisforum,dc=local"                    # LDAPのルートDN、ドメインをDN形式で表記する
+  #     LDAP_USERS_DN: "ou=ldap,dc=minisforum,dc=local"         # ユーザOU、ドメイン部分だけ変更する
+  #     LDAP_GROUPS_DN: "ou=ldaps,dc=minisforum,dc=local"        # グループOU、ドメイン部分だけ変更する
+  #     LDAP_SERVER: "ldap://openldap:389"
+  #     LAM_LANG: "ja_JP"
+  #     LAM_PASSWORD: "lam_password"                         # LdapAccountManagerの 初期設定用パスワード
+  #     VIRTUAL_HOST: "lam"
+  #     # CERT_NAME: "ldap"                                    # SSL証明書名、.crt, .key のファイル名部分を指定。
+  #   depends_on:
+  #     - openldap
+  #   networks:
+  #     - ldap-network
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+
+  # https://coder.com/docs/code-server/latest/install#docker
+  code-server:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: coder
+    restart: always
+    privileged: true
+    environment:
+      - UID=1000
+      - GID=1000
+      - TZ=Asia/Tokyo
+      - PASSWORD= #optional
+      - HASHED_PASSWORD= #optional
+      - SUDO_PASSWORD= #optional
+      - SUDO_PASSWORD_HASH= #optional
+      # - PROXY_DOMAIN=coder-homelab.local #optional
+      # - PROXY_DOMAIN=coder.192.168.11.3.traefik.me #optional
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.coder.entrypoints=http"
+      - "traefik.http.routers.coder.rule=PathPrefix(`/coder/`) || HostRegexp(`coder.{ip:.*}.traefik.me`)"
+      # - "traefik.http.routers.coder.rule=Host(`coder-homelab.local`)"
+      - "traefik.http.routers.coder.service=coder"
+      - "traefik.http.services.coder.loadbalancer.server.port=8443"
+      - "traefik.http.routers.coder.middlewares=coder"
+      - "traefik.http.middlewares.coder.stripprefix.prefixes=/coder"
+    networks:
+      - reverse-proxy
+    volumes:
+      - ./code-server/.local:/home/coder/.local
+      - ./code-server/.config:/home/coder/.config
+      - ./code-server/project:/home/coder/project
+
+  # https://docs.gitlab.com/ee/install/docker.html
+  gitlab:
+    image: docker.io/gitlab/gitlab-ee:16.10.3-ee.0
+    container_name: gitlab
+    restart: always
+    # hostname: 'gitlab-homelab.local'
+    # shm_size: '256m'
+    environment:
+      GITLAB_RELATIVE_URL_ROOT: "/gitlab"
+      GITLAB_OMNIBUS_CONFIG: |
+        # external_url 'http://gitlab-homelab.local'
+        external_url 'http://gitlab.192.168.11.3.traefik.me'
+        # external_url 'http://192.168.11.3/gitlab'
+        # Add any other gitlab.rb configuration here, each on its own line
+        gitlab_rails['time_zone'] = 'Tokyo'
+        gitlab_rails['initial_root_password'] = 'root_initial'
+        # nginx['listen_port'] = 80
+        # nginx['listen_https'] = false
+
+        # [OPTION] GitLab Container Registry
+        # registry_external_url 'http://gitlab-registry-homelab.local'
+        # registry_external_url 'http://registry.gitlab.192.168.11.3.traefik.me'
+        # registry_external_url 'http://192.168.11.3/gitlab-registry'
+        # gitlab_rails['registry_enabled'] = true
+        # gitlab_rails['registry_api_url'] = "http://localhost:5000"
+        # registry['enable'] = true
+        # registry_nginx['enable'] = false
+        # registry['registry_http_addr'] = "0.0.0.0:5000"
+
+        # [OPTION] GitLab Pages
+        # pages_external_url 'http://gitlab-pages-homelab.local/'
+        # pages_external_url 'http://pages.gitlab.192.168.11.3.traefik.me'
+        # gitlab_pages['enable'] = true
+        # gitlab_pages['access_control'] = true
+        # gitlab_pages['redirect_http'] = false
+        # Routing: Traefik -> GitLab Pages
+        # pages_nginx['enable'] = false
+        # gitlab_pages['external_http'] = ['0.0.0.0:8081']
+
+        # [OPTION] Needless feature reduction
+        # gitlab_rails['gitlab_kas_enabled'] = false
+        # grafana['enable'] = false
+        # prometheus_monitoring['enable'] = false
+        # prometheus['enable'] = false
+        # alertmanager['enable'] = false
+    labels:
+      - "traefik.enable=true"
+      # Git on SSH
+      - "traefik.tcp.services.gitlab-ssh.loadbalancer.server.port=22"
+      - "traefik.tcp.routers.gitlab-ssh.service=gitlab-ssh"
+      - "traefik.tcp.routers.gitlab-ssh.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.gitlab-ssh.entrypoints=ssh"
+      # HTTP: GitLab
+      - "traefik.http.services.gitlab-http.loadbalancer.server.port=80"
+      - "traefik.http.routers.gitlab-http.service=gitlab-http"
+      # - "traefik.http.routers.gitlab-http.rule=Host(`gitlab-homelab.local`)"
+      # - "traefik.http.routers.gitlab-http.rule=HostRegexp(`gitlab.{ip:.*}.traefik.me`)"
+      - "traefik.http.routers.gitlab-http.rule=PathPrefix(`/gitlab/`) || HostRegexp(`gitlab.{ip:.*}.traefik.me`)"
+      - "traefik.http.routers.gitlab-http.entrypoints=http"
+      # - "traefik.http.routers.gitlab-http.middlewares=gitlab-http"
+      # - "traefik.http.middlewares.gitlab-http.stripprefix.prefixes=/gitlab"
+      # HTTP: GitLab Container Registry
+      # - "traefik.http.services.gitlab-registry.loadbalancer.server.port=5000"
+      # - "traefik.http.routers.gitlab-registry.service=gitlab-registry"
+      # - "traefik.http.routers.gitlab-registry.rule=Host(`gitlab-registry-homelab.local`)"
+      # # - "traefik.http.routers.gitlab-http.rule=HostRegexp(`registry.gitlab.{ip:.*}.traefik.me`)"
+      # - "traefik.http.routers.gitlab-registry.entrypoints=http"
+      # HTTP: GitLab Pages
+      # - "traefik.http.services.gitlab-pages.loadbalancer.server.port=8081"
+      # - "traefik.http.routers.gitlab-pages.service=gitlab-pages"
+      # - "traefik.http.routers.gitlab-pages.rule=Host(`gitlab-pages-homelab.local`) || Host(`group.gitlab-pages-homelab.local`)"
+      # - "traefik.http.routers.gitlab-http.rule=HostRegexp(`pages.gitlab.{ip:.*}.traefik.me`) || HostRegexp(`{subdomain:[a-zA-Z0-9]+}.gitlab.{ip:.*}.traefik.me`)"
+      # - "traefik.http.routers.gitlab-pages.entrypoints=http"
+    volumes:
+      - ./gitlab/config:/etc/gitlab
+      - ./gitlab/logs:/var/log/gitlab
+      - ./gitlab/data:/var/opt/gitlab
+    networks:
+      - reverse-proxy
+      - gitlab-network
+    # memswap_limit: "8G"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "8.0"
+    #       memory: "8G"
+    #     reservations:
+    #       cpus: "4.0"
+    #       memory: "4G"
+
+  # https://docs.gitlab.com/runner/install/docker.html
+  gitlab-runner:
+    image: docker.io/gitlab/gitlab-runner:latest
+    container_name: gitlab-runner
+    restart: always
+    volumes:
+      - ./gitlab/gitlab-runner/config:/etc/gitlab-runner
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - gitlab-network
+
+
+
+networks:
+  reverse-proxy:
+    name: reverse-proxy
+  homepage-network:
+    name: homepage-network
+  gitlab-network:
+    name: gitlab-network
+  ldap-network:
+    name: ldap-network

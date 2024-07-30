@@ -1,10 +1,8 @@
-version: "3.3"
-
 services:
 
   # https://doc.traefik.io/traefik/user-guides/docker-compose/basic-example/
   traefik:
-    image: "traefik:v2.11"
+    image: "docker.io/traefik:v2.11"
     container_name: "traefik"
     command:
       #- "--log.level=DEBUG"
@@ -27,11 +25,13 @@ services:
       - traefik-proxy
 
   whoami:
-    image: "traefik/whoami"
+    image: "docker.io/traefik/whoami"
     container_name: "whoami"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=HostRegexp(`whoami.{ip:.*}.traefik.me`)"
+      # - "traefik.http.routers.whoami.rule=HostRegexp(`whoami.{ip:.*}.traefik.me`)"
+      # - "traefik.http.routers.whoami.rule=Host(`whoami-homelab.local`)"
+      - "traefik.http.routers.whoami.rule=PathPrefix(`whoami-homelab.local`)"
       - "traefik.http.routers.whoami.entrypoints=http"
       - "traefik.http.routers.whoami.service=whoami"
       - "traefik.http.services.whoami.loadbalancer.server.port=80"

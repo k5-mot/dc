@@ -11,8 +11,7 @@ services:
     environment:
       GITLAB_OMNIBUS_CONFIG: |
         # Add any other gitlab.rb configuration here, each on its own line
-        # external_url 'http://192.168.11.3/gitlab'
-        external_url 'http://gitlab.192.168.11.3.traefik.me'
+        external_url 'http://minisforum.local/gitlab'
         # registry_external_url 'http://192.168.11.3/gitlab/registry/'
         # pages_external_url 'http://192.168.11.3/gitlab/pages/'
         gitlab_rails['time_zone'] = 'Tokyo'

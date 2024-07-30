@@ -1,0 +1,347 @@
+services:
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      # - ./nginx.conf:/etc/nginx/conf.d/revpro.conf:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - portainer
+    networks:
+      - network-proxy
+
+  # https://zenn.dev/mebiusbox/articles/a1f2ca3965bbb3
+  # https://qiita.com/yama-ken/items/2a31b9061e4012213e4a
+  openldap:
+    image: osixia/openldap
+    container_name: openldap
+    environment:
+      LDAP_ORGANISATION: "OpenLDAP"
+      LDAP_DOMAIN: "openldap.com"
+      LDAP_ADMIN_PASSWORD: "admin"
+    networks:
+      - network-proxy
+
+  # 以下でログイン
+  #   Login DN: "cn=admin,dc=openldap,dc=com"
+  #   Password: "admin"
+  openldap-ui:
+    image: osixia/phpldapadmin
+    container_name: openldap-ui
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: openldap-host
+      PHPLDAPADMIN_HTTPS: false
+    links:
+      - openldap:openldap-host
+    networks:
+      - network-proxy
+
+  # https://docs.portainer.io/start/install-ce/server/docker/linux
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:2.20.3
+    privileged: true
+    volumes:
+      - ./.volumes/portainer/data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    networks:
+      - network-proxy
+
+
+  # https://docs.gitlab.com/ee/install/docker.html
+  gitlab:
+    image: gitlab/gitlab-ee:16.10.3-ee.0
+    container_name: gitlab
+    restart: always
+    shm_size: '256m'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        # Add any other gitlab.rb configuration here, each on its own line
+        external_url 'http://192.168.11.2/gitlab'
+        gitlab_rails['time_zone'] = 'Tokyo'
+    volumes:
+      - ./.volumes/gitlab/config:/etc/gitlab
+      - ./.volumes/gitlab/logs:/var/log/gitlab
+      - ./.volumes/gitlab/data:/var/opt/gitlab
+    networks:
+      - network-proxy
+      - network-gitlab
+
+  # https://docs.gitlab.com/runner/install/docker.html
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    container_name: gitlab-runner
+    restart: always
+    volumes:
+      - ./.volumes/gitlab-runner/config:/etc/gitlab-runner
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - network-gitlab
+
+  # https://github.com/jenkinsci/docker/blob/master/README.md
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    environment:
+      - "JENKINS_OPTS=--prefix=/jenkins"
+    volumes:
+      - volume-jenkins:/var/jenkins_home
+    networks:
+      - network-proxy
+      - network-jenkins
+
+  jenkins-ssh:
+    image: jenkins/ssh-agent
+    container_name: jenkins-ssh
+    networks:
+      - network-jenkins
+
+  redmine:
+    # image: redmine:5.0.4-bullseye
+    build:
+      context: .
+      dockerfile: ./redmine/Dockerfile
+    container_name: redmine
+    environment:
+      REDMINE_DB_POSTGRES: redmine-db
+      REDMINE_DB_DATABASE: redmine
+      REDMINE_DB_USERNAME: redmine_user
+      REDMINE_DB_PASSWORD: redmine_password
+      REDMINE_SECRET_KEY_BASE: supersecretkey
+      REDMINE_DB_PORT: 5432
+    volumes:
+      - volume-redmine:/usr/src/redmine/files
+    networks:
+      - network-proxy
+      - network-redmine
+
+  redmine-db:
+    image: postgres:15.1-bullseye
+    container_name: redmine-db
+    environment:
+      POSTGRES_DB: redmine
+      POSTGRES_USER: redmine_user
+      POSTGRES_PASSWORD: redmine_password
+    volumes:
+      - volume-redmine-db:/var/lib/postgresql/data
+    networks:
+      - network-redmine
+
+  # https://gethomepage.dev/latest/configs/docker/#using-docker-socket-proxy
+  dockerproxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:latest
+    privileged: true
+    container_name: dockerproxy
+    environment:
+      - CONTAINERS=1 # Allow access to viewing containers
+      - SERVICES=0 # Allow access to viewing services (necessary when using Docker Swarm)
+      - TASKS=0 # Allow access to viewing tasks (necessary when using Docker Swarm)
+      - POST=0 # Disallow any POST operations (effectively read-only)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Mounted as read-only
+    restart: unless-stopped
+    networks:
+      - network-homepage
+
+  # https://github.com/gethomepage/homepage/
+  homepage:
+    image: ghcr.io/gethomepage/homepage:v0.8.12
+    container_name: homepage
+    restart: unless-stopped
+    privileged: true
+    # environment:
+    #   # use `id` command
+    #   PUID: 1000
+    #   PGID: 1000
+    volumes:
+      # Make sure your local config directory exists
+      - ./homepage/config:/app/config
+      # optional, for docker integrations
+      # - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - network-proxy
+      - network-homepage
+
+  # https://coder.com/docs/code-server/latest/install#docker
+  coder:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: coder
+    restart: always
+    privileged: true
+    environment:
+      - UID=1000
+      - GID=1000
+      - TZ=Asia/Tokyo
+      - PASSWORD= #optional
+      - HASHED_PASSWORD= #optional
+      - SUDO_PASSWORD= #optional
+      - SUDO_PASSWORD_HASH= #optional
+      - PROXY_DOMAIN= #optional
+    networks:
+      - network-proxy
+    volumes:
+      - ./.volumes/coder/.local:/home/coder/.local
+      - ./.volumes/coder/.config:/home/coder/.config
+      - ./.volumes/coder/project:/home/coder/project
+
+ # https://github.com/support-project/docker-knowledge/blob/master/docker-compose.yml
+  knowledge:
+    # image: koda/docker-knowledge:japanese
+    build:
+      context: .
+      dockerfile: ./knowledge/Dockerfile
+    container_name: knowledge
+    volumes:
+      - ./knowledge/custom_connection.xml:/root/.knowledge/custom_connection.xml
+      - ./.volumes/knowledge:/root/.knowledge
+    restart: always
+    depends_on:
+      - knowledge-db
+    networks:
+      - network-proxy
+      - network-knowledge
+
+  knowledge-db:
+    image: postgres:9
+    container_name: knowledge-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_DB=knowledge_production
+    volumes:
+      # - ./volumes/initdb:/docker-entrypoint-initdb.d
+      - ./.volumes/knowledge-db:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - network-knowledge
+
+  # https://docs.requarks.io/install/docker
+  wikijs:
+    image: ghcr.io/requarks/wiki:2
+    container_name: wikijs
+    depends_on:
+      - wikijs-db
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: wikijs-db
+      DB_PORT: 5432
+      DB_USER: wikijs
+      DB_PASS: wikijsrocks
+      DB_NAME: wiki
+    restart: unless-stopped
+    networks:
+      - network-proxy
+      - network-wikijs
+    ports:
+      - 30010:3000
+
+  wikijs-db:
+    image: postgres:15-alpine
+    container_name: wikijs-db
+    environment:
+      POSTGRES_DB: wiki
+      POSTGRES_PASSWORD: wikijsrocks
+      POSTGRES_USER: wikijs
+    logging:
+      driver: "none"
+    restart: unless-stopped
+    volumes:
+      - volume-wikijs-db:/var/lib/postgresql/data
+    networks:
+      - network-wikijs
+
+  nextcloud:
+    container_name: nextcloud
+    image: nextcloud
+    volumes:
+      - ./.volumes/nextcloud:/var/www/html
+    restart: always
+    ports:
+      - 30011:80
+    environment:
+      - MYSQL_HOST=nextcloud-db
+      - MYSQL_PASSWORD=nextcloud_pw
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud_user
+    networks:
+      - network-proxy
+      - network-nextcloud
+
+  nextcloud-db:
+    container_name: nextcloud-db
+    image: mariadb
+    restart: always
+    volumes:
+      - ./.volumes/nextcloud-db:/var/lib/mysql
+    environment:
+      - MARIADB_ROOT_PASSWORD=nextcloud_root_pw
+      - MARIADB_PASSWORD=nextcloud_pw
+      - MARIADB_DATABASE=nextcloud
+      - MARIADB_USER=nextcloud_user
+    networks:
+      - network-nextcloud
+
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama
+  #   restart: unless-stopped
+  #   pull_policy: always
+  #   tty: true
+  #   volumes:
+  #     - ./.volumes/ollama:/root/.ollama
+
+  # open-webui:
+  #   build:
+  #     context: .
+  #     args:
+  #       OLLAMA_BASE_URL: '/ollama'
+  #     dockerfile: Dockerfile
+  #   image: ghcr.io/open-webui/open-webui:${WEBUI_DOCKER_TAG-main}
+  #   container_name: open-webui
+  #   volumes:
+  #     - ./.volumes/open-webui:/app/backend/data
+  #   depends_on:
+  #     - ollama
+  #   ports:
+  #     - ${OPEN_WEBUI_PORT-3000}:8080
+  #   environment:
+  #     - 'OLLAMA_BASE_URL=http://ollama:11434'
+  #     - 'WEBUI_SECRET_KEY='
+  #   extra_hosts:
+  #     - host.docker.internal:host-gateway
+  #   restart: unless-stopped
+
+networks:
+  network-proxy:
+    name: network-proxy
+    driver: bridge
+  network-gitlab:
+    name: network-gitlab
+  network-redmine:
+    name: network-redmine
+  network-homepage:
+    name: network-homepage
+  network-jenkins:
+    name: network-jenkins
+  network-knowledge:
+    name: network-knowledge
+  network-wikijs:
+    name: network-wikijs
+  network-nextcloud:
+    name: network-nextcloud
+
+volumes:
+  volume-redmine:
+    name: volume-redmine
+  volume-redmine-db:
+    name: volume-redmine-db
+  volume-jenkins:
+    name: volume-jenkins
+  volume-wikijs-db:
+    name: volume-wikijs-db

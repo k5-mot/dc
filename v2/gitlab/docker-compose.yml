@@ -1,0 +1,102 @@
+services:
+
+  # https://docs.gitlab.com/ee/install/docker.html
+  gitlab:
+    image: gitlab/gitlab-ee:16.10.3-ee.0
+    container_name: gitlab
+    restart: always
+    # hostname: 'gitlab-homelab.local'
+    # shm_size: '256m'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        # Add any other gitlab.rb configuration here, each on its own line
+        # external_url 'http://gitlab-homelab.local'
+        external_url 'http://gitlab.192.168.11.3.traefik.me'
+        # gitlab_rails['time_zone'] = 'Tokyo'
+        # gitlab_rails['initial_root_password'] = 'root_initial'
+        # nginx['listen_port'] = 80
+        # nginx['listen_https'] = false
+
+        # [OPTION] GitLab Container Registry
+        # registry_external_url 'http://gitlab-registry-homelab.local'
+        # # registry_external_url 'http://registry.gitlab.192.168.11.3.traefik.me'
+        # gitlab_rails['registry_enabled'] = true
+        # gitlab_rails['registry_api_url'] = "http://localhost:5000"
+        # registry['enable'] = true
+        # registry_nginx['enable'] = false
+        # registry['registry_http_addr'] = "0.0.0.0:5000"
+
+        # [OPTION] GitLab Pages
+        # pages_external_url 'http://gitlab-pages-homelab.local/'
+        # pages_external_url 'http://pages.gitlab.192.168.11.3.traefik.me'
+        # gitlab_pages['enable'] = true
+        # gitlab_pages['access_control'] = true
+        # gitlab_pages['redirect_http'] = false
+        # Routing: Traefik -> GitLab Pages
+        # pages_nginx['enable'] = false
+        # gitlab_pages['external_http'] = ['0.0.0.0:8081']
+
+        # [OPTION] Needless feature reduction
+        # gitlab_rails['gitlab_kas_enabled'] = false
+        # grafana['enable'] = false
+        # prometheus_monitoring['enable'] = false
+        # prometheus['enable'] = false
+        # alertmanager['enable'] = false
+    labels:
+      - "traefik.enable=true"
+      # Git on SSH
+      - "traefik.tcp.services.gitlab-ssh.loadbalancer.server.port=22"
+      - "traefik.tcp.routers.gitlab-ssh.service=gitlab-ssh"
+      - "traefik.tcp.routers.gitlab-ssh.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.gitlab-ssh.entrypoints=ssh"
+      # HTTP: GitLab
+      - "traefik.http.services.gitlab-http.loadbalancer.server.port=80"
+      - "traefik.http.routers.gitlab-http.service=gitlab-http"
+      # - "traefik.http.routers.gitlab-http.rule=Host(`gitlab-homelab.local`)"
+      - "traefik.http.routers.gitlab-http.rule=HostRegexp(`gitlab.{ip:.*}.traefik.me`)"
+      - "traefik.http.routers.gitlab-http.entrypoints=http"
+      # HTTP: GitLab Container Registry
+      # - "traefik.http.services.gitlab-registry.loadbalancer.server.port=5000"
+      # - "traefik.http.routers.gitlab-registry.service=gitlab-registry"
+      # - "traefik.http.routers.gitlab-registry.rule=Host(`gitlab-registry-homelab.local`)"
+      # # - "traefik.http.routers.gitlab-http.rule=HostRegexp(`registry.gitlab.{ip:.*}.traefik.me`)"
+      # - "traefik.http.routers.gitlab-registry.entrypoints=http"
+      # HTTP: GitLab Pages
+      # - "traefik.http.services.gitlab-pages.loadbalancer.server.port=8081"
+      # - "traefik.http.routers.gitlab-pages.service=gitlab-pages"
+      # - "traefik.http.routers.gitlab-pages.rule=Host(`gitlab-pages-homelab.local`) || Host(`group.gitlab-pages-homelab.local`)"
+      # - "traefik.http.routers.gitlab-http.rule=HostRegexp(`pages.gitlab.{ip:.*}.traefik.me`) || HostRegexp(`{subdomain:[a-zA-Z0-9]+}.gitlab.{ip:.*}.traefik.me`)"
+      # - "traefik.http.routers.gitlab-pages.entrypoints=http"
+    volumes:
+      - ./.volumes/config:/etc/gitlab
+      - ./.volumes/logs:/var/log/gitlab
+      - ./.volumes/data:/var/opt/gitlab
+    networks:
+      - traefik-proxy
+      - gitlab-backend
+    # memswap_limit: "8G"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "8.0"
+    #       memory: "8G"
+    #     reservations:
+    #       cpus: "4.0"
+    #       memory: "4G"
+
+  # https://docs.gitlab.com/runner/install/docker.html
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    container_name: gitlab-runner
+    restart: always
+    volumes:
+      - ./gitlab-runner/config:/etc/gitlab-runner
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - gitlab-backend
+
+networks:
+  gitlab-backend:
+    name: gitlab-backend
+  traefik-proxy:
+    external: true

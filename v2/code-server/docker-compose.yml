@@ -1,5 +1,3 @@
-version: '3'
-
 services:
 
   # https://coder.com/docs/code-server/latest/install#docker
@@ -12,16 +10,17 @@ services:
       - UID=1000
       - GID=1000
       - TZ=Asia/Tokyo
-      - PASSWORD=password #optional
+      - PASSWORD= #optional
       - HASHED_PASSWORD= #optional
-      - SUDO_PASSWORD=password #optional
+      - SUDO_PASSWORD= #optional
       - SUDO_PASSWORD_HASH= #optional
-      - PROXY_DOMAIN=code-server.192.168.11.4.traefik.me #optional
+      # - PROXY_DOMAIN=code-server.192.168.11.4.traefik.me #optional
+      - PROXY_DOMAIN=coder-homelab.local #optional
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.code-server.entrypoints=http"
-      - "traefik.http.routers.code-server.rule=HostRegexp(`code-server.{ip:.*}.traefik.me`)"
-      # - "traefik.http.routers.code-server.rule=PathPrefix(``)"
+      # - "traefik.http.routers.code-server.rule=HostRegexp(`code-server.{ip:.*}.traefik.me`)"
+      - "traefik.http.routers.code-server.rule=Host(`coder-homelab.local`)"
       - "traefik.http.routers.code-server.service=code-server"
       - "traefik.http.services.code-server.loadbalancer.server.port=8443"
     networks:

@@ -35,7 +35,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.homepage.entrypoints=http"
-      - "traefik.http.routers.homepage.rule=HostRegexp(`home.{ip:.*}.traefik.me`)"
+      - "traefik.http.routers.homepage.rule=HostRegexp(`home.local`)"
       - "traefik.http.routers.homepage.service=homepage"
       - "traefik.http.services.homepage.loadbalancer.server.port=3000"
     volumes:
