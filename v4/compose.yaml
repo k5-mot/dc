@@ -223,41 +223,6 @@ services:
     networks:
       - network-knowledge
 
-  # https://docs.requarks.io/install/docker
-  wikijs:
-    image: ghcr.io/requarks/wiki:2
-    container_name: wikijs
-    depends_on:
-      - wikijs-db
-    environment:
-      DB_TYPE: postgres
-      DB_HOST: wikijs-db
-      DB_PORT: 5432
-      DB_USER: wikijs
-      DB_PASS: wikijsrocks
-      DB_NAME: wiki
-    restart: unless-stopped
-    networks:
-      - network-proxy
-      - network-wikijs
-    ports:
-      - 30010:3000
-
-  wikijs-db:
-    image: postgres:15-alpine
-    container_name: wikijs-db
-    environment:
-      POSTGRES_DB: wiki
-      POSTGRES_PASSWORD: wikijsrocks
-      POSTGRES_USER: wikijs
-    logging:
-      driver: "none"
-    restart: unless-stopped
-    volumes:
-      - volume-wikijs-db:/var/lib/postgresql/data
-    networks:
-      - network-wikijs
-
 
   nextcloud:
     container_name: nextcloud
@@ -289,6 +254,41 @@ services:
       - MARIADB_USER=nextcloud_user
     networks:
       - network-nextcloud
+
+
+
+
+  # Initial Setup: username=admin, password=admin
+  # DataSource: http://prometheus:9090
+  # https://zenn.dev/aobaiwaki/articles/a612bf497c59ca
+  # Import: https://grafana.com/grafana/dashboards/1860-node-exporter-full/
+  # https://github.com/rvva/nginx-prometheus-grafana/blob/main/docker-compose.yml
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: always
+    networks:
+      - network-proxy
+      - network-grafana
+    environment:
+      GF_SERVER_ROOT_URL: http://grafana:3000/grafana/
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus
+    command: "--config.file=/etc/prometheus/prometheus.yaml"
+    restart: always
+    networks:
+      - network-grafana
+
+  exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: always
+    networks:
+      - network-grafana
 
 #  ollama:
 #     volumes:
@@ -345,38 +345,82 @@ services:
   #   command: [ "--config", "/app/config.yaml", "--port", "8000" ]
   #   restart: unless-stopped
 
-
-  # Initial Setup: username=admin, password=admin
-  # DataSource: http://prometheus:9090
-  # https://zenn.dev/aobaiwaki/articles/a612bf497c59ca
-  # Import: https://grafana.com/grafana/dashboards/1860-node-exporter-full/
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    restart: always
-    networks:
-      - network-proxy
-      - network-grafana
+  # https://docs.requarks.io/install/docker
+  wikijs:
+    image: ghcr.io/requarks/wiki:2
+    container_name: wikijs
+    depends_on:
+      - wikijs-db
     environment:
-      GF_SERVER_ROOT_URL: http://grafana:3000/grafana/
+      DB_TYPE: postgres
+      DB_HOST: wikijs-db
+      DB_PORT: 5432
+      DB_USER: wikijs
+      DB_PASS: wikijsrocks
+      DB_NAME: wiki
+    restart: unless-stopped
+    networks:
+      # - network-proxy
+      - network-wikijs
+    ports:
+      - 30010:3000
 
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
+  wikijs-db:
+    image: postgres:15-alpine
+    container_name: wikijs-db
+    environment:
+      POSTGRES_DB: wiki
+      POSTGRES_PASSWORD: wikijsrocks
+      POSTGRES_USER: wikijs
+    logging:
+      driver: "none"
+    restart: unless-stopped
     volumes:
-      - ./prometheus:/etc/prometheus
-    command: "--config.file=/etc/prometheus/prometheus.yaml"
-    restart: always
+      - volume-wikijs-db:/var/lib/postgresql/data
     networks:
-      - network-grafana
+      - network-wikijs
 
-  exporter:
-    image: prom/node-exporter:latest
-    container_name: node-exporter
-    restart: always
+  docmost:
+    image: docmost/docmost:latest
+    container_name: docmost
+    depends_on:
+      - docmost-db
+      - docmost-redis
+    environment:
+      APP_URL: 'http://localhost:30011/'
+      APP_SECRET: '10f563cefb3a65fbcb5bd0b15e1932bc3a4949ef2b3d04af047d048bd5be2125'
+      DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@docmost-db:5432/docmost?schema=public'
+      REDIS_URL: 'redis://docmost-redis:6379'
+    ports:
+      - 30011:3000
+    restart: unless-stopped
+    volumes:
+      - volume-docmost:/app/data/storage
     networks:
-      - network-grafana
+      # - network-proxy
+      - network-docmost
 
+  docmost-db:
+    image: postgres:16-alpine
+    container_name: docmost-db
+    environment:
+      POSTGRES_DB: docmost
+      POSTGRES_USER: docmost
+      POSTGRES_PASSWORD: STRONG_DB_PASSWORD
+    restart: unless-stopped
+    volumes:
+      - volume-docmost-db:/var/lib/postgresql/data
+    networks:
+      - network-docmost
+
+  docmost-redis:
+    image: redis:7.2-alpine
+    container_name: docmost-redis
+    restart: unless-stopped
+    volumes:
+      - volume-docmost-redis:/data
+    networks:
+      - network-docmost
 
 networks:
   network-proxy:
@@ -398,6 +442,8 @@ networks:
     name: network-nextcloud
   network-grafana:
     name: network-grafana
+  network-docmost:
+    name: network-docmost
   # network-ollama:
   #   name: network-ollama
 
@@ -410,6 +456,12 @@ volumes:
     name: volume-jenkins
   volume-wikijs-db:
     name: volume-wikijs-db
+  volume-docmost:
+    name: volume-docmost
+  volume-docmost-db:
+    name: volume-docmost-db
+  volume-docmost-redis:
+    name: volume-docmost-redis
   # volume-ollama:
   #   name: volume-ollama
   # volume-ollama-webui:

@@ -54,6 +54,10 @@
       container: nextcloud
 
 - System Services in Operation:
+  - Cockpit:
+      href: http://192.168.11.2/cockpit/
+      icon: cockpit.png
+      description: サーバ監視
   - Portainer:
       href: http://192.168.11.2/portainer/
       icon: portainer.svg
@@ -71,7 +75,21 @@
       description: えるだっぷ
       server: my-docker
       container: openldap
-
+  - Grafana:
+      icon: grafana.svg
+      description: さーば監視
+      server: my-docker
+      container: grafana
+  - Prometheus:
+      icon: prometheus.svg
+      description: めとりくす
+      server: my-docker
+      container: prometheus
+  - Node-Exporter:
+      icon: prometheus.svg
+      description: めとりくす収集
+      server: my-docker
+      container: node-exporter
 
 - Backend Services in Operation:
   - GitLab-Runner:
@@ -130,3 +148,19 @@
       description: DB
       server: my-docker
       container: wikijs-db
+  - Docmost:
+      href: http://192.168.11.2:30011
+      icon: https://docmost.com/favicon.ico
+      description: のーとていきんぐ
+      server: my-docker
+      container: docmost
+  - PostgreSQL for Docmost:
+      icon: postgres.svg
+      description: DB
+      server: my-docker
+      container: docmost-db
+  - Redis for Docmost:
+      icon: redis.svg
+      description: In-Memory DB
+      server: my-docker
+      container: docmost-redis
