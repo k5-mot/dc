@@ -86,7 +86,7 @@
       description: めとりくす
       server: my-docker
       container: prometheus
-  - Node-Exporter:
+  - Node Exporter:
       icon: prometheus.svg
       description: めとりくす収集
       server: my-docker
@@ -98,17 +98,17 @@
       container: cadvisor
 
 - Backend Services in Operation:
-  - GitLab-Runner:
+  - GitLab Runner:
       icon: gitlab.svg
       description: ぎっと
       server: my-docker
       container: gitlab-runner
-  - dockerproxy:
+  - Docker Socket Secure Proxy:
       icon: docker.svg
       description: ほーむのDockerAPI用
       server: my-docker
       container: dockerproxy
-  - Jenkins-SSH-Agent:
+  - Jenkins SSH Agent:
       icon: jenkins.png
       description: CICD
       server: my-docker
@@ -131,7 +131,7 @@
 
 
 - Services in Experiment:
-  - Open-WebUI:
+  - Open WebUI:
       href: http://192.168.11.2:30012/
       icon: open-webui.png
       description: AIくんUI (リバプロなし)
