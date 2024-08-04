@@ -58,6 +58,7 @@
       href: http://192.168.11.2/cockpit/
       icon: cockpit.png
       description: サーバ監視
+      ping: localhost
   - Portainer:
       href: http://192.168.11.2/portainer/
       icon: portainer.svg
@@ -91,10 +92,10 @@
       server: my-docker
       container: node-exporter
   - cAdvisor:
-      icon: cadvidor.png
+      icon: cadvisor.png
       description: dockerめとりくす収集
       server: my-docker
-      container: cadvidor
+      container: cadvisor
 
 - Backend Services in Operation:
   - GitLab-Runner:
