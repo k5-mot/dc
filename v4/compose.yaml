@@ -276,13 +276,13 @@ services:
       - network-proxy
       - network-grafana
     environment:
-      - GF_SERVER_ROOT_URL=http://grafana:3000/grafana/
-      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
-      - DS_PROMETHEUS=prometheus
+      GF_SERVER_ROOT_URL: http://grafana:3000/grafana/
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+      DS_PROMETHEUS: prometheus
     volumes:
       - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
-      - ./grafana/1860_rev37.json:/var/lib/grafana/dashboards/1860_rev37.json
-      - ./grafana/11600_rev1.json:/var/lib/grafana/dashboards/11600_rev1.json
+      - ./grafana/docker.json:/var/lib/grafana/dashboards/docker.json
+      - ./grafana/machine.json:/var/lib/grafana/dashboards/machine.json
       - ./grafana/default.yaml:/etc/grafana/provisioning/dashboards/default.yaml
 
   prometheus:
