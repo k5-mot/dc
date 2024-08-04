@@ -1,0 +1,15 @@
+apiVersion: 1
+
+providers:
+
+- name: Node Exporter Full # A uniquely identifiable name for the provider
+  folder: Services # The folder where to place the dashboards
+  type: file
+  options:
+    path: /var/lib/grafana/dashboards/1860_rev37.json
+
+- name: Docker Container # A uniquely identifiable name for the provider
+  folder: Services # The folder where to place the dashboards
+  type: file
+  options:
+    path: /var/lib/grafana/dashboards/11600_rev1.json
