@@ -90,6 +90,11 @@
       description: めとりくす収集
       server: my-docker
       container: node-exporter
+  - cAdvisor:
+      icon: cadvidor.png
+      description: dockerめとりくす収集
+      server: my-docker
+      container: cadvidor
 
 - Backend Services in Operation:
   - GitLab-Runner:

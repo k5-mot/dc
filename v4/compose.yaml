@@ -14,6 +14,7 @@ services:
     networks:
       - network-proxy
 
+
   # https://zenn.dev/mebiusbox/articles/a1f2ca3965bbb3
   # https://qiita.com/yama-ken/items/2a31b9061e4012213e4a
   openldap:
@@ -39,6 +40,7 @@ services:
       - openldap:openldap-host
     networks:
       - network-proxy
+
 
   # https://docs.portainer.io/start/install-ce/server/docker/linux
   portainer:
@@ -83,6 +85,7 @@ services:
     networks:
       - network-gitlab
 
+
   # https://github.com/jenkinsci/docker/blob/master/README.md
   jenkins:
     image: jenkins/jenkins:lts
@@ -100,6 +103,7 @@ services:
     container_name: jenkins-ssh
     networks:
       - network-jenkins
+
 
   redmine:
     # image: redmine:5.0.4-bullseye
@@ -131,6 +135,7 @@ services:
       - volume-redmine-db:/var/lib/postgresql/data
     networks:
       - network-redmine
+
 
   # https://gethomepage.dev/latest/configs/docker/#using-docker-socket-proxy
   dockerproxy:
@@ -170,6 +175,7 @@ services:
       - network-proxy
       - network-homepage
 
+
   # https://coder.com/docs/code-server/latest/install#docker
   coder:
     image: lscr.io/linuxserver/code-server:latest
@@ -191,6 +197,7 @@ services:
       - ./.volumes/coder/.local:/home/coder/.local
       - ./.volumes/coder/.config:/home/coder/.config
       - ./.volumes/coder/project:/home/coder/project
+
 
  # https://github.com/support-project/docker-knowledge/blob/master/docker-compose.yml
   knowledge:
@@ -240,7 +247,6 @@ services:
       - network-proxy
       - network-nextcloud
 
-
   nextcloud-db:
     container_name: nextcloud-db
     image: mariadb
@@ -256,12 +262,11 @@ services:
       - network-nextcloud
 
 
-
-
   # Initial Setup: username=admin, password=admin
   # DataSource: http://prometheus:9090
   # https://zenn.dev/aobaiwaki/articles/a612bf497c59ca
   # Import: https://grafana.com/grafana/dashboards/1860-node-exporter-full/
+  # Import: https://grafana.com/grafana/dashboards/11600-docker-container/
   # https://github.com/rvva/nginx-prometheus-grafana/blob/main/docker-compose.yml
   grafana:
     image: grafana/grafana
@@ -289,6 +294,25 @@ services:
     restart: always
     networks:
       - network-grafana
+
+  cadvisor:
+    container_name: cadvisor
+    image: gcr.io/cadvisor/cadvisor:latest
+    # network_mode: host
+    # ports:
+    #   - 8080:8080
+    volumes:
+      - /:/rootfs
+      - /var/run:/var/run
+      - /sys:/sys
+      - /var/lib/docker/:/var/lib/docker
+      - /dev/disk/:/dev/disk
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - network-grafana
+
 
 #  ollama:
 #     volumes:
@@ -345,6 +369,7 @@ services:
   #   command: [ "--config", "/app/config.yaml", "--port", "8000" ]
   #   restart: unless-stopped
 
+
   # https://docs.requarks.io/install/docker
   wikijs:
     image: ghcr.io/requarks/wiki:2
@@ -379,6 +404,7 @@ services:
       - volume-wikijs-db:/var/lib/postgresql/data
     networks:
       - network-wikijs
+
 
   docmost:
     image: docmost/docmost:latest
@@ -422,6 +448,7 @@ services:
     networks:
       - network-docmost
 
+
 networks:
   network-proxy:
     name: network-proxy
@@ -446,6 +473,7 @@ networks:
     name: network-docmost
   # network-ollama:
   #   name: network-ollama
+
 
 volumes:
   volume-redmine:
