@@ -8,50 +8,50 @@
       icon: homepage.png
       description: ほーむ
       server: my-docker
-      container: homepage
+      container: homelab-homepage
   - Nginx:
       href: http://192.168.11.2/
       icon: nginx.svg
       description: さーば、りばぷろ
       server: my-docker
-      container: nginx
+      container: homelab-nginx
   - GitLab:
       href: http://192.168.11.2/gitlab/
       icon: gitlab.svg
       description: ぎっと
       server: my-docker
-      container: gitlab
+      container: homelab-gitlab
   - Redmine:
       href: http://192.168.11.2/redmine/
       icon: si-redmine-#B32024
       description: ちけっと
       server: my-docker
-      container: redmine
+      container: homelab-redmine
   - Code-Server:
       href: http://192.168.11.2/coder/
       icon: code-server.png
       description: かいはつかんきょう
       server: my-docker
-      container: coder
+      container: homelab-coder
   - Jenkins:
       href: http://192.168.11.2/jenkins/
       icon: jenkins.png
       description: CICD
       server: my-docker
-      container: jenkins
+      container: homelab-jenkins
   - Knowledge:
       href: http://192.168.11.2/knowledge/
       # icon: mdi-crosshairs-question
       icon: https://avatars.githubusercontent.com/u/10343544?s=200&v=4
       description: なれっじ
       server: my-docker
-      container: knowledge
+      container: homelab-knowledge
   - Nextcloud:
       href: http://192.168.11.2/nextcloud/
       icon: nextcloud.svg
       description: すとれーじ
       server: my-docker
-      container: nextcloud
+      container: homelab-nextcloud
 
 - System Services in Operation:
   - Cockpit:
@@ -64,70 +64,70 @@
       icon: portainer.svg
       description: どっかー
       server: my-docker
-      container: portainer
+      container: homelab-portainer
   - phpLDAPadmin:
       href: http://192.168.11.2/openldap/
       icon: phpldapadmin.png
       description: えるだっぷのUI
       server: my-docker
-      container: openldap-ui
+      container: homelab-openldap-ui
   - OpenLDAP:
       icon: phpldapadmin.png
       description: えるだっぷ
       server: my-docker
-      container: openldap
+      container: homelab-openldap
   - Grafana:
       icon: grafana.svg
       description: さーば監視
       server: my-docker
-      container: grafana
+      container: homelab-grafana
   - Prometheus:
       icon: prometheus.svg
       description: めとりくす
       server: my-docker
-      container: prometheus
+      container: homelab-prometheus
   - Node Exporter:
       icon: prometheus.svg
       description: めとりくす収集
       server: my-docker
-      container: node-exporter
+      container: homelab-node-exporter
   - cAdvisor:
       icon: cadvisor.png
       description: dockerめとりくす収集
       server: my-docker
-      container: cadvisor
+      container: homelab-cadvisor
 
 - Backend Services in Operation:
   - GitLab Runner:
       icon: gitlab.svg
       description: ぎっと
       server: my-docker
-      container: gitlab-runner
-  - Docker Socket Secure Proxy:
+      container: homelab-gitlab-runner
+  - Docker Socket Proxy:
       icon: docker.svg
       description: ほーむのDockerAPI用
       server: my-docker
-      container: dockerproxy
+      container: homelab-dockerproxy
   - Jenkins SSH Agent:
       icon: jenkins.png
       description: CICD
       server: my-docker
-      container: jenkins-ssh
+      container: homelab-jenkins-ssh
   - PostgreSQL for Redmine:
       icon: postgres.svg
       description: DB
       server: my-docker
-      container: redmine-db
+      container: homelab-redmine-db
   - PostgreSQL for Knowledge:
       icon: postgres.svg
       description: DB
       server: my-docker
-      container: knowledge-db
+      container: homelab-knowledge-db
   - MariaDB for Nextcloud:
       icon: mariadb.svg
       description: DB
       server: my-docker
-      container: nextcloud-db
+      container: homelab-nextcloud-db
 
 
 - Services in Experiment:
@@ -136,37 +136,37 @@
       icon: open-webui.png
       description: AIくんUI (リバプロなし)
       server: my-docker
-      container: open-webui
+      container: homelab-ollama-webui
   - Ollama:
       href: http://192.168.11.2:30012/
       icon: ollama.svg
       description: AIくん本体 (リバプロなし)
       server: my-docker
-      container: ollama
+      container: homelab-ollama
   - Wiki.js:
       href: http://192.168.11.2:30010
       icon: wikijs.png
       description: なれっじ (リバプロなし)
       server: my-docker
-      container: wikijs
+      container: homelab-wikijs
   - PostgreSQL for Wiki.js:
       icon: postgres.svg
       description: DB
       server: my-docker
-      container: wikijs-db
+      container: homelab-wikijs-db
   - Docmost:
       href: http://192.168.11.2:30011
       icon: https://docmost.com/favicon.ico
       description: のーとていきんぐ
       server: my-docker
-      container: docmost
+      container: homelab-docmost
   - PostgreSQL for Docmost:
       icon: postgres.svg
       description: DB
       server: my-docker
-      container: docmost-db
+      container: homelab-docmost-db
   - Redis for Docmost:
       icon: redis.svg
       description: In-Memory DB
       server: my-docker
-      container: docmost-redis
+      container: homelab-docmost-redis

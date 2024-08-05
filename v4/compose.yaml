@@ -1,8 +1,11 @@
+
+name: homelab-stack
+
 services:
 
   nginx:
     image: nginx:latest
-    container_name: nginx
+    container_name: homelab-nginx
     restart: always
     ports:
       - 80:80
@@ -19,7 +22,7 @@ services:
   # https://qiita.com/yama-ken/items/2a31b9061e4012213e4a
   openldap:
     image: osixia/openldap
-    container_name: openldap
+    container_name: homelab-openldap
     environment:
       LDAP_ORGANISATION: "OpenLDAP"
       LDAP_DOMAIN: "openldap.com"
@@ -32,25 +35,27 @@ services:
   #   Password: "admin"
   openldap-ui:
     image: osixia/phpldapadmin
-    container_name: openldap-ui
+    container_name: homelab-openldap-ui
     environment:
       PHPLDAPADMIN_LDAP_HOSTS: openldap-host
       PHPLDAPADMIN_HTTPS: false
     links:
       - openldap:openldap-host
+    volumes:
+      - volume-openldap-ui:/var/www/phpldapadmin
     networks:
       - network-proxy
 
 
   # https://docs.portainer.io/start/install-ce/server/docker/linux
   portainer:
-    container_name: portainer
     image: portainer/portainer-ce:2.20.3
+    container_name: homelab-portainer
+    restart: unless-stopped
     privileged: true
     volumes:
-      - ./.volumes/portainer/data:/data
+      - /srv/portainer/data:/data
       - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
     networks:
       - network-proxy
 
@@ -58,7 +63,7 @@ services:
   # https://docs.gitlab.com/ee/install/docker.html
   gitlab:
     image: gitlab/gitlab-ee:16.10.3-ee.0
-    container_name: gitlab
+    container_name: homelab-gitlab
     restart: always
     shm_size: '256m'
     environment:
@@ -67,9 +72,9 @@ services:
         external_url 'http://192.168.11.2/gitlab'
         gitlab_rails['time_zone'] = 'Tokyo'
     volumes:
-      - ./.volumes/gitlab/config:/etc/gitlab
-      - ./.volumes/gitlab/logs:/var/log/gitlab
-      - ./.volumes/gitlab/data:/var/opt/gitlab
+      - /srv/gitlab/config:/etc/gitlab
+      - /srv/gitlab/logs:/var/log/gitlab
+      - /srv/gitlab/data:/var/opt/gitlab
     networks:
       - network-proxy
       - network-gitlab
@@ -77,11 +82,12 @@ services:
   # https://docs.gitlab.com/runner/install/docker.html
   gitlab-runner:
     image: gitlab/gitlab-runner:latest
-    container_name: gitlab-runner
+    container_name: homelab-gitlab-runner
     restart: always
     volumes:
-      - ./.volumes/gitlab-runner/config:/etc/gitlab-runner
+      - /srv/gitlab-runner/config:/etc/gitlab-runner
       - /var/run/docker.sock:/var/run/docker.sock
+      - volume-gitlab-runner:/home/gitlab-runner
     networks:
       - network-gitlab
 
@@ -89,7 +95,7 @@ services:
   # https://github.com/jenkinsci/docker/blob/master/README.md
   jenkins:
     image: jenkins/jenkins:lts
-    container_name: jenkins
+    container_name: homelab-jenkins
     environment:
       - "JENKINS_OPTS=--prefix=/jenkins"
     volumes:
@@ -100,7 +106,13 @@ services:
 
   jenkins-ssh:
     image: jenkins/ssh-agent
-    container_name: jenkins-ssh
+    container_name: homelab-jenkins-ssh
+    volumes:
+      - volume-jenkins-ssh-agent:/home/jenkins/agent
+      - volume-jenkins-ssh-tmp:/tmp
+      - volume-jenkins-ssh-dot:/home/jenkins/.jenkins
+      - volume-jenkins-ssh-run:/run
+      - volume-jenkins-ssh-varrun:/var/run
     networks:
       - network-jenkins
 
@@ -110,7 +122,7 @@ services:
     build:
       context: .
       dockerfile: ./redmine/Dockerfile
-    container_name: redmine
+    container_name: homelab-redmine
     environment:
       REDMINE_DB_POSTGRES: redmine-db
       REDMINE_DB_DATABASE: redmine
@@ -126,7 +138,7 @@ services:
 
   redmine-db:
     image: postgres:15.1-bullseye
-    container_name: redmine-db
+    container_name: homelab-redmine-db
     environment:
       POSTGRES_DB: redmine
       POSTGRES_USER: redmine_user
@@ -140,8 +152,9 @@ services:
   # https://gethomepage.dev/latest/configs/docker/#using-docker-socket-proxy
   dockerproxy:
     image: ghcr.io/tecnativa/docker-socket-proxy:latest
+    container_name: homelab-dockerproxy
+    restart: unless-stopped
     privileged: true
-    container_name: dockerproxy
     environment:
       - CONTAINERS=1 # Allow access to viewing containers
       - SERVICES=0 # Allow access to viewing services (necessary when using Docker Swarm)
@@ -149,17 +162,22 @@ services:
       - POST=0 # Disallow any POST operations (effectively read-only)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock # Mounted as read-only
-    restart: unless-stopped
     networks:
       - network-homepage
+    healthcheck:
+      test: wget --spider http://localhost:2375/version || exit 1
+      interval: 29s
+      timeout: 5s
+      retries: 3
+      start_period: "21s"
 
   # https://github.com/gethomepage/homepage/
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
     # build:
     #   context: ./homepage
-      # dockerfile: ./homepage/Dockerfile
-    container_name: homepage
+    #   dockerfile: ./homepage/Dockerfile
+    container_name: homelab-homepage
     restart: unless-stopped
     privileged: true
     # environment:
@@ -179,7 +197,7 @@ services:
   # https://coder.com/docs/code-server/latest/install#docker
   coder:
     image: lscr.io/linuxserver/code-server:latest
-    container_name: coder
+    container_name: homelab-coder
     restart: always
     privileged: true
     environment:
@@ -194,9 +212,14 @@ services:
     networks:
       - network-proxy
     volumes:
-      - ./.volumes/coder/.local:/home/coder/.local
-      - ./.volumes/coder/.config:/home/coder/.config
-      - ./.volumes/coder/project:/home/coder/project
+      - /srv/coder/.local:/home/coder/.local
+      - /srv/coder/.config:/home/coder/.config
+      - /srv/coder/project:/home/coder/project
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8443/healthz"]
+      interval: 1s
+      timeout: 10s
+      retries: 5
 
 
  # https://github.com/support-project/docker-knowledge/blob/master/docker-compose.yml
@@ -205,59 +228,59 @@ services:
     build:
       context: .
       dockerfile: ./knowledge/Dockerfile
-    container_name: knowledge
-    volumes:
-      - ./knowledge/custom_connection.xml:/root/.knowledge/custom_connection.xml
-      - ./.volumes/knowledge:/root/.knowledge
+    container_name: homelab-knowledge
     restart: always
     depends_on:
       - knowledge-db
+    volumes:
+      - ./knowledge/custom_connection.xml:/root/.knowledge/custom_connection.xml
+      - /srv/knowledge:/root/.knowledge
     networks:
       - network-proxy
       - network-knowledge
 
   knowledge-db:
     image: postgres:9
-    container_name: knowledge-db
+    container_name: homelab-knowledge-db
+    restart: always
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=admin123
       - POSTGRES_DB=knowledge_production
     volumes:
       # - ./volumes/initdb:/docker-entrypoint-initdb.d
-      - ./.volumes/knowledge-db:/var/lib/postgresql/data
-    restart: always
+      - /srv/knowledge-db:/var/lib/postgresql/data
     networks:
       - network-knowledge
 
 
   nextcloud:
-    container_name: nextcloud
+    container_name: homelab-nextcloud
     image: nextcloud
-    volumes:
-      - ./.volumes/nextcloud:/var/www/html
-      - ./nextcloud/setup.sh:/root/setup.sh
     restart: always
     environment:
       - MYSQL_HOST=nextcloud-db
       - MYSQL_PASSWORD=nextcloud_pw
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud_user
+    volumes:
+      - /srv/nextcloud:/var/www/html
+      - ./nextcloud/setup.sh:/root/setup.sh
     networks:
       - network-proxy
       - network-nextcloud
 
   nextcloud-db:
-    container_name: nextcloud-db
+    container_name: homelab-nextcloud-db
     image: mariadb
     restart: always
-    volumes:
-      - ./.volumes/nextcloud-db:/var/lib/mysql
     environment:
       - MARIADB_ROOT_PASSWORD=nextcloud_root_pw
       - MARIADB_PASSWORD=nextcloud_pw
       - MARIADB_DATABASE=nextcloud
       - MARIADB_USER=nextcloud_user
+    volumes:
+      - /srv/nextcloud-db:/var/lib/mysql
     networks:
       - network-nextcloud
 
@@ -270,100 +293,93 @@ services:
   # https://github.com/rvva/nginx-prometheus-grafana/blob/main/docker-compose.yml
   grafana:
     image: grafana/grafana
-    container_name: grafana
+    container_name: homelab-grafana
     restart: always
-    networks:
-      - network-proxy
-      - network-grafana
     environment:
       GF_SERVER_ROOT_URL: http://grafana:3000/grafana/
       GF_PATHS_PROVISIONING: /etc/grafana/provisioning
-      DS_PROMETHEUS: prometheus
+      DS_PROMETHEUS: homelab-prometheus
     volumes:
       - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
       - ./grafana/docker.json:/var/lib/grafana/dashboards/docker.json
       - ./grafana/machine.json:/var/lib/grafana/dashboards/machine.json
       - ./grafana/default.yaml:/etc/grafana/provisioning/dashboards/default.yaml
+    networks:
+      - network-proxy
+      - network-grafana
 
   prometheus:
     image: prom/prometheus
-    container_name: prometheus
+    container_name: homelab-prometheus
+    restart: always
+    command: "--config.file=/etc/prometheus/prometheus.yaml"
     volumes:
       - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml
-    command: "--config.file=/etc/prometheus/prometheus.yaml"
-    restart: always
+      - volume-prometheus:/prometheus
     networks:
       - network-grafana
 
   exporter:
     image: prom/node-exporter:latest
-    container_name: node-exporter
+    container_name: homelab-node-exporter
     restart: always
     networks:
       - network-grafana
 
   cadvisor:
-    container_name: cadvisor
     image: gcr.io/cadvisor/cadvisor:latest
+    container_name: homelab-cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg
     # network_mode: host
-    # ports:
-    #   - 8080:8080
     volumes:
       - /:/rootfs
       - /var/run:/var/run
       - /sys:/sys
       - /var/lib/docker/:/var/lib/docker
       - /dev/disk/:/dev/disk
-    privileged: true
-    devices:
-      - /dev/kmsg
     networks:
       - network-grafana
 
 
-#  ollama:
-#     volumes:
-#       - ./ollama:/root/ollama
-#       - volume-ollama:/root/.ollama
-#     container_name: ollama
-#     pull_policy: always
-#     tty: true
-#     restart: unless-stopped
-#     image: ollama/ollama:latest
-#     ports:
-#       - 11434:11434
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: homelab-ollama
+  #   pull_policy: always
+  #   tty: true
+  #   restart: unless-stopped
+  #   ports:
+  #     - 11434:11434
+  #   volumes:
+  #     - ./ollama:/root/ollama
+  #     - volume-ollama:/root/.ollama
+  #   # deploy:
+  #   #   resources:
+  #   #     reservations:
+  #   #       devices:
+  #   #         - driver: nvidia
+  #   #           count: 1
+  #   #           capabilities: [gpu]
 
   # ollama-webui:
-  #   # build:
-  #   #   context: .
-  #   #   args:
-  #   #     OLLAMA_BASE_URL: '/ollama'
-  #   #   dockerfile: Dockerfile
   #   image: ghcr.io/open-webui/open-webui:main
-  #   container_name: ollama-webui
-  #   volumes:
-  #     - volume-ollama-webui:/app/backend/data
+  #   container_name: homelab-ollama-webui
+  #   restart: unless-stopped
   #   depends_on:
   #     - ollama
+  #   extra_hosts:
+  #     - host.docker.internal:host-gateway
   #   ports:
-  #     - 3000:8080
+  #     - 30015:8080
   #   environment:
-  #     - OLLAMA_BASE_URL=http://ollama:11434
+  #     - OLLAMA_BASE_URL=http://homelab-ollama:11434
   #     # - OPENAI_API_BASE_URL=http://litellm:4000/v1
   #     # - OPENAI_API_KEY=${LITELLM_API_KEY}
   #     # - WEBUI_SECRET_KEY=
   #     - WEBUI_AUTH=False
-  #   extra_hosts:
-  #     - host.docker.internal:host-gateway
-  #   restart: unless-stopped
-
+  #   volumes:
+  #     - volume-ollama-webui:/app/backend/data
 
   # litellm:
   #   image: ghcr.io/berriai/litellm:main-latest
@@ -378,126 +394,146 @@ services:
 
 
   # https://docs.requarks.io/install/docker
-  wikijs:
-    image: ghcr.io/requarks/wiki:2
-    container_name: wikijs
-    depends_on:
-      - wikijs-db
-    environment:
-      DB_TYPE: postgres
-      DB_HOST: wikijs-db
-      DB_PORT: 5432
-      DB_USER: wikijs
-      DB_PASS: wikijsrocks
-      DB_NAME: wiki
-    restart: unless-stopped
-    networks:
-      # - network-proxy
-      - network-wikijs
-    ports:
-      - 30010:3000
+  # wikijs:
+  #   image: ghcr.io/requarks/wiki:2
+  #   container_name: homelab-wikijs
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - wikijs-db
+  #   environment:
+  #     DB_TYPE: postgres
+  #     DB_HOST: wikijs-db
+  #     DB_PORT: 5432
+  #     DB_USER: wikijs
+  #     DB_PASS: wikijsrocks
+  #     DB_NAME: wiki
+  #   ports:
+  #     - 30010:3000
+  #   volumes:
+  #     - volume-wikijs:/wiki/data/content
+  #   networks:
+  #     # - network-proxy
+  #     - network-wikijs
 
-  wikijs-db:
-    image: postgres:15-alpine
-    container_name: wikijs-db
-    environment:
-      POSTGRES_DB: wiki
-      POSTGRES_PASSWORD: wikijsrocks
-      POSTGRES_USER: wikijs
-    logging:
-      driver: "none"
-    restart: unless-stopped
-    volumes:
-      - volume-wikijs-db:/var/lib/postgresql/data
-    networks:
-      - network-wikijs
+  # wikijs-db:
+  #   image: postgres:15-alpine
+  #   container_name: homelab-wikijs-db
+  #   restart: unless-stopped
+  #   logging:
+  #     driver: "none"
+  #   environment:
+  #     POSTGRES_DB: wiki
+  #     POSTGRES_PASSWORD: wikijsrocks
+  #     POSTGRES_USER: wikijs
+  #   volumes:
+  #     - volume-wikijs-db:/var/lib/postgresql/data
+  #   networks:
+  #     - network-wikijs
 
 
-  docmost:
-    image: docmost/docmost:latest
-    container_name: docmost
-    depends_on:
-      - docmost-db
-      - docmost-redis
-    environment:
-      APP_URL: 'http://localhost:30011/'
-      APP_SECRET: '10f563cefb3a65fbcb5bd0b15e1932bc3a4949ef2b3d04af047d048bd5be2125'
-      DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@docmost-db:5432/docmost?schema=public'
-      REDIS_URL: 'redis://docmost-redis:6379'
-    ports:
-      - 30011:3000
-    restart: unless-stopped
-    volumes:
-      - volume-docmost:/app/data/storage
-    networks:
-      # - network-proxy
-      - network-docmost
+  # docmost:
+  #   image: docmost/docmost:latest
+  #   container_name: homelab-docmost
+  #   restart: unless-stopped
+  #   ports:
+  #     - 30011:3000
+  #   depends_on:
+  #     - docmost-db
+  #     - docmost-redis
+  #   environment:
+  #     APP_URL: 'http://localhost:30011/'
+  #     APP_SECRET: '10f563cefb3a65fbcb5bd0b15e1932bc3a4949ef2b3d04af047d048bd5be2125'
+  #     DATABASE_URL: 'postgresql://docmost:STRONG_DB_PASSWORD@homelab-docmost-db:5432/docmost?schema=public'
+  #     REDIS_URL: 'redis://homelab-docmost-redis:6379'
+  #   volumes:
+  #     - volume-docmost:/app/data/storage
+  #   networks:
+  #     # - network-proxy
+  #     - network-docmost
 
-  docmost-db:
-    image: postgres:16-alpine
-    container_name: docmost-db
-    environment:
-      POSTGRES_DB: docmost
-      POSTGRES_USER: docmost
-      POSTGRES_PASSWORD: STRONG_DB_PASSWORD
-    restart: unless-stopped
-    volumes:
-      - volume-docmost-db:/var/lib/postgresql/data
-    networks:
-      - network-docmost
+  # docmost-db:
+  #   image: postgres:16-alpine
+  #   container_name: homelab-docmost-db
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: docmost
+  #     POSTGRES_USER: docmost
+  #     POSTGRES_PASSWORD: STRONG_DB_PASSWORD
+  #   volumes:
+  #     - volume-docmost-db:/var/lib/postgresql/data
+  #   networks:
+  #     - network-docmost
 
-  docmost-redis:
-    image: redis:7.2-alpine
-    container_name: docmost-redis
-    restart: unless-stopped
-    volumes:
-      - volume-docmost-redis:/data
-    networks:
-      - network-docmost
+  # docmost-redis:
+  #   image: redis:7.2-alpine
+  #   container_name: homelab-docmost-redis
+  #   restart: unless-stopped
+  #   volumes:
+  #     - volume-docmost-redis:/data
+  #   networks:
+  #     - network-docmost
 
 
 networks:
   network-proxy:
-    name: network-proxy
+    name: network-homelab-proxy
     driver: bridge
   network-gitlab:
-    name: network-gitlab
+    name: network-homelab-gitlab
   network-redmine:
-    name: network-redmine
+    name: network-homelab-redmine
   network-homepage:
-    name: network-homepage
+    name: network-homelab-homepage
   network-jenkins:
-    name: network-jenkins
+    name: network-homelab-jenkins
   network-knowledge:
-    name: network-knowledge
+    name: network-homelab-knowledge
   network-wikijs:
-    name: network-wikijs
+    name: network-homelab-wikijs
   network-nextcloud:
-    name: network-nextcloud
+    name: network-homelab-nextcloud
   network-grafana:
-    name: network-grafana
+    name: network-homelab-grafana
   network-docmost:
-    name: network-docmost
+    name: network-homelab-docmost
   # network-ollama:
   #   name: network-ollama
 
 
 volumes:
+  volume-gitlab-runner:
+    name: volume-homelab-gitlab-runner
   volume-redmine:
-    name: volume-redmine
+    name: volume-homelab-redmine
   volume-redmine-db:
-    name: volume-redmine-db
+    name: volume-homelab-redmine-db
   volume-jenkins:
-    name: volume-jenkins
+    name: volume-homelab-jenkins
+  volume-jenkins-ssh-tmp:
+    name: volume-homelab-jenkins-ssh-tmp
+  volume-jenkins-ssh-agent:
+    name: volume-homelab-jenkins-ssh-agent
+  volume-jenkins-ssh-dot:
+    name: volume-homelab-jenkins-ssh-dot
+  volume-jenkins-ssh-run:
+    name: volume-homelab-jenkins-ssh-run
+  volume-jenkins-ssh-varrun:
+    name: volume-homelab-jenkins-ssh-varrun
+  volume-wikijs:
+    name: volume-homelab-wikijs
   volume-wikijs-db:
-    name: volume-wikijs-db
+    name: volume-homelab-wikijs-db
   volume-docmost:
-    name: volume-docmost
+    name: volume-homelab-docmost
   volume-docmost-db:
-    name: volume-docmost-db
+    name: volume-homelab-docmost-db
   volume-docmost-redis:
-    name: volume-docmost-redis
-  # volume-ollama:
-  #   name: volume-ollama
-  # volume-ollama-webui:
-  #   name: volume-ollama-webui
+    name: volume-homelab-docmost-redis
+  volume-prometheus:
+    name: volume-homelab-prometheus
+  volume-openldap-ui:
+    name: volume-homelab-openldap-ui
+  volume-ollama:
+    name: volume-homelab-ollama
+  volume-ollama-webui:
+    name: volume-homelab-ollama-webui

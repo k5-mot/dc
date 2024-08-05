@@ -18,6 +18,6 @@ scrape_configs:
   - job_name: 'prometheus'
     static_configs:
       - targets:
-        - prometheus:9090
-        - node-exporter:9100
-        - cadvisor:8080
+        - homelab-prometheus:9090
+        - homelab-node-exporter:9100
+        - homelab-cadvisor:8080
