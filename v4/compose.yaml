@@ -327,7 +327,7 @@ services:
       - network-grafana
 
   cadvisor:
-    image: ghcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:latest
     container_name: homelab-cadvisor
     privileged: true
     devices:
